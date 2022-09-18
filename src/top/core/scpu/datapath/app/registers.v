@@ -17,7 +17,9 @@ module REGS(
 
     assign read_data_1 = (read_addr_1 == 0) ? 0 : registers[read_addr_1];
     assign read_data_2 = (read_addr_2 == 0) ? 0 : registers[read_addr_2];
-    
+    assign debug_reg_data = registers[debug_reg_addr];
+
+
     always @(posedge clk or posedge rst) begin
         if(rst) begin
             for(i = 1; i < 32; i = i + 1) begin
