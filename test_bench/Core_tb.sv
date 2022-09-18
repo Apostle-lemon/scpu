@@ -19,6 +19,8 @@ module Core_tb
     logic [31:0] chip_debug_out2;
     logic [31:0] chip_debug_out3;
 
+    logic [4:0] reg_index;
+
     // local
     logic [31:0]pc_out, addr_out, inst;
 
@@ -27,12 +29,13 @@ module Core_tb
         .aresetn(aresetn),
         .step(step),
         .debug_mode(debug_mode),
+        .debug_reg_addr(reg_index),
 
         .address(address),      // 没有管
         .data_out(data_out),    // 没有管
         .data_in(data_in),      // 没有管
+        .chip_debug_in(chip_debug_in), // 没有管
 
-        .chip_debug_in(chip_debug_in),
         .chip_debug_out0(chip_debug_out0),
         .chip_debug_out1(chip_debug_out1),
         .chip_debug_out2(chip_debug_out2),
@@ -49,6 +52,7 @@ module Core_tb
         clk = 1;
         step = 0;
         debug_mode = 1;
+        reg_index = 20;
         #100;
         
         fork
