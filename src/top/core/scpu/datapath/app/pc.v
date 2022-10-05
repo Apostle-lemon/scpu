@@ -9,7 +9,7 @@ module PC(
     
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            addr_reg <= 0;
+            addr_reg <= -4;
         end else begin
             addr_reg <= addr;
         end

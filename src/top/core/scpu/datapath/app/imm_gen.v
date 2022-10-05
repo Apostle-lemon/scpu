@@ -5,7 +5,7 @@ module ImmGen(
 );
 
     // get the immediate number according to the instruction type
-    reg [31:0] imm = 1;
+    reg [31:0] imm = 0;
     always @(*)
     begin
         case (inst[6:0])

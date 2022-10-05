@@ -1,21 +1,14 @@
-module Control(
+module CONTROL(
   input [6:0]  op_code,
   input [2:0]  funct3,
   input funct7_5,
-  input zero_wire,
 
   // Outputs
-  output [1:0]pc_src,
-  output reg_write,
-  output alu_src_b,
-  output [3:0]alu_op,
-  output [1:0]mem_to_reg,
-  output mem_write,
-  output branch,
-  output b_type
+  output [4:0] id_ex,
+  output [2:0] id_m,
+  output [3:0] id_wb
   );
 
-  reg[1:0] pc_src_reg;
   reg reg_write_reg;
   reg alu_src_b_reg;
   reg[3:0] alu_op_reg;
@@ -25,7 +18,6 @@ module Control(
   reg b_type_reg;
 
   always @* begin
-    pc_src_reg = 0;
     reg_write_reg = 0;
     alu_src_b_reg = 0;
     mem_to_reg_reg = 0;
@@ -34,12 +26,12 @@ module Control(
     b_type_reg = 1'b0;
 
     case (op_code)
+        //ADDI
         7'b0010011: begin 
           reg_write_reg = 1'b1; 
           alu_src_b_reg = 1'b1;
           alu_op_reg = {1'b0, funct3};
           mem_to_reg_reg = 2'b00; 
-          pc_src_reg = 2'b00;
           end
         //lw
         7'b0100011: begin 
@@ -47,7 +39,6 @@ module Control(
           alu_src_b_reg = 1'b1;
           alu_op_reg = 4'b0000;
           mem_to_reg_reg = 2'b01; //arbitrary 
-          pc_src_reg = 2'b00;
           mem_write_reg = 1'b1;
           end
         //sw
@@ -56,7 +47,6 @@ module Control(
           alu_src_b_reg = 1'b1;
           alu_op_reg = 4'b0000;
           mem_to_reg_reg = 2'b11; 
-          pc_src_reg = 2'b00;
           end
         // bne, beq
         7'b1100011: begin
@@ -67,19 +57,9 @@ module Control(
           if(funct3 == 3'b000) begin
             // beq
             b_type_reg = 1'b1;
-            if(zero_wire == 1'b0) begin
-              pc_src_reg = 2'b00;
-            end else begin
-              pc_src_reg = 2'b10;
-            end
           end
           else begin
             b_type_reg = 1'b0;
-            if(zero_wire == 1'b1) begin
-              pc_src_reg = 2'b00;
-            end else begin
-              pc_src_reg = 2'b10;
-            end
           end
           end
         // lui
@@ -88,7 +68,6 @@ module Control(
           alu_src_b_reg = 1'b0;//arbitrary
           alu_op_reg = 4'b0000;//arbitrary
           mem_to_reg_reg = 2'b01; 
-          pc_src_reg = 2'b00;
           end
         //jal
         7'b1101111: begin
@@ -96,14 +75,12 @@ module Control(
           alu_src_b_reg = 1'b0;//arbitrary
           alu_op_reg = 4'b0000;//arbitrary
           mem_to_reg_reg = 2'b10; 
-          pc_src_reg = 2'b10;
           end
         7'b0110011: begin
           reg_write_reg = 1'b1;
           alu_src_b_reg = 1'b0;
           alu_op_reg = {1'b0,funct3};
           mem_to_reg_reg = 2'b00;
-          pc_src_reg = 2'b00;
           end
         
         // other instructions
@@ -111,14 +88,10 @@ module Control(
     endcase
 end
 
-    assign pc_src = pc_src_reg;
-    assign reg_write = reg_write_reg;
-    assign alu_src_b = alu_src_b_reg;
-    assign alu_op = alu_op_reg;
-    assign mem_to_reg = mem_to_reg_reg;
-    assign mem_write = mem_write_reg;
-    assign branch = branch_reg;
-    assign b_type = b_type_reg;
+    assign id_ex = {alu_src_b_reg, alu_op_reg};
+    assign id_m = {branch_reg, b_type_reg, mem_write_reg};
+    assign id_wb = {reg_write_reg, mem_to_reg_reg};
+
 endmodule
 
 

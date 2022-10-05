@@ -15,7 +15,7 @@ module Core(
     output wire [31:0] chip_debug_out0, // pc
     output wire [31:0] chip_debug_out1, // addr_out, 是写入内存的地址
     output wire [31:0] chip_debug_out2, // the register data of reg[debug_reg_addr], that is 寄存器数�?
-    output wire [31:0] chip_debug_out3
+    output wire [31:0] chip_debug_out3  // the instruction of the current pc
     
 );
     wire rst, mem_write, mem_clk, cpu_clk;
@@ -48,6 +48,7 @@ module Core(
         if(rst) clk_div <= 0;
         else clk_div <= clk_div + 1;
     end
+    
     assign mem_clk = ~clk_div[0]; // 50mhz
     assign cpu_clk = debug_mode ? clk_div[0] : step;
     
@@ -69,5 +70,6 @@ module Core(
     assign chip_debug_out0 = pc_out;
     assign chip_debug_out1 = addr_out;
     assign chip_debug_out2 = debug_reg_data;
+    assign chip_debug_out3 = inst;
 
 endmodule

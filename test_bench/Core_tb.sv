@@ -31,10 +31,10 @@ module Core_tb
         .debug_mode(debug_mode),
         .debug_reg_addr(reg_index),
 
-        .address(address),      // 没有管
-        .data_out(data_out),    // 没有管
-        .data_in(data_in),      // 没有管
-        .chip_debug_in(chip_debug_in), // 没有管
+        .address(address),      // 没有�?
+        .data_out(data_out),    // 没有�?
+        .data_in(data_in),      // 没有�?
+        .chip_debug_in(chip_debug_in), // 没有�?
 
         .chip_debug_out0(chip_debug_out0),
         .chip_debug_out1(chip_debug_out1),
@@ -44,7 +44,7 @@ module Core_tb
 
     assign pc_out = chip_debug_out0;
     assign addr_out = chip_debug_out1;
-    assign inst = chip_debug_out2;
+    assign inst = chip_debug_out3;
 
     integer i;
     initial begin
