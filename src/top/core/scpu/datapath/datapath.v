@@ -25,6 +25,7 @@ module Datapath(
 wire [31:0] pc_addr0;
 wire [31:0] pc_addr1;
 wire [31:0] pc_new;
+wire [31:0] pc_new2;
 
 ADD pc_add(
     .in_data_1(pc_out),
@@ -32,33 +33,47 @@ ADD pc_add(
     .out_data(pc_addr0)
 );
 
-// pc_new <- pc_addr0 (pc+4) or pc_addr1
-wire pc_src;
+
+wire[1:0] pc_src;
+
 MUX2T1_32 pc_mux(
     .in_data_1(pc_addr0),
     .in_data_2(pc_addr1),
-    .sel(pc_src),
+    .sel(pc_src[1]),
     .out_data(pc_new)
 );
+
+MUX2T1_32 pc_mux2(
+    .in_data_1(pc_new),
+    .in_data_2(pc_addr1),
+    .sel(pc_src[0]),
+    .out_data(pc_new2)
+);
+
+// pc_src[1] : choose pc_addr0 (pc+4) or pc_addr1 (branch)
+// pc_src[0] : choose pc_new or pc_addr1 (jump)
 
 PC pc(
     .clk(clk),
     .rst(rst),
-    .addr(pc_new),
+    .addr(pc_new2),
     .new_addr(pc_out)
 );
 
 wire[31:0] id_instruction;
 wire[31:0] id_pc_out;
+wire[31:0] id_pc_addr0;
 
 IFIDREG ifidreg(
     .clk(clk),
     .rst(rst),
     .ifidin_pc_out(pc_out),
     .ifidin_inst(inst_in),
+    .ifidin_pc_addr0(pc_addr0),
 
     .ifidout_inst(id_instruction),
-    .ifidout_pc_out(id_pc_out)
+    .ifidout_pc_out(id_pc_out),
+    .ifidout_id_pc_addr0(id_pc_addr0)
 );
 
 // 
@@ -84,7 +99,7 @@ assign id_rd_addr = id_instruction[11:7];
 
 wire [4:0] id_EX;          // id_EX = { alu_src[4], alu_op[3:0] }
 wire [2:0] id_M;           // id_M = { branch[2], b_type[1], mem_write[0] }
-wire [3:0] id_WB;          // id_WB = { reg_write[3], mem_to_reg[2:0] }
+wire [2:0] id_WB;          // id_WB = { reg_write[2], mem_to_reg[1:0] }
 
 // branch : 1'b1 is branch, 1'b0 not branch
 // b_type : 1'b1 beq, 1'b0 bnq
@@ -93,6 +108,7 @@ wire [3:0] id_WB;          // id_WB = { reg_write[3], mem_to_reg[2:0] }
 // alu_op : see the file
 // reg_write : 1'b1 reg_write_enable
 // mem_to_reg : 2'b00 reg[dr]<---ALU_result, 2'b01 reg[dr]<---imm, 2'b10 reg[dr]<---pc+4, 2'b11 reg[dr]<----data memory
+// jump : we pass the instruction to mem stage 
 
 CONTROL control ( 
     .op_code(id_instruction[6:0]),
@@ -107,7 +123,7 @@ CONTROL control (
 REGS regs(
     .clk(clk),
     .rst(rst),
-    .we(wb_WB[3]),
+    .we(wb_WB[2]),
     .read_addr_1(id_rs1_addr),
     .read_addr_2(id_rs2_addr),
     .write_addr(wb_rd_addr),
@@ -132,13 +148,15 @@ ALUOP aluop (
 
 wire [4:0] ex_EX;
 wire [2:0] ex_M;
-wire [3:0] ex_WB;
+wire [2:0] ex_WB;
 wire [31:0] ex_pc_out;
 wire [31:0] ex_rs1_data;
 wire [31:0] ex_rs2_data;
 wire [31:0] ex_imm;
 wire [3:0] ex_alu_op;
 wire [4:0] ex_rd_addr;
+wire [31:0] ex_pc_addr0;
+wire [31:0] ex_inst;
 
 IDEXREG idereg(
     .clk(clk),
@@ -152,6 +170,8 @@ IDEXREG idereg(
     .idexin_id_imm(id_imm),
     .idexin_id_alu_op(id_alu_op),
     .idexin_id_rd_addr(id_rd_addr),
+    .idexin_id_pc_addr0(id_pc_addr0),
+    .idexin_id_inst(id_instruction),
 
     .idexout_ex(ex_EX),
     .idexout_m(ex_M),
@@ -161,7 +181,9 @@ IDEXREG idereg(
     .idexout_ex_rs2_data(ex_rs2_data),
     .idexout_ex_imm(ex_imm),
     .idexout_ex_alu_op(ex_alu_op),
-    .idexout_ex_rd_addr(ex_rd_addr)
+    .idexout_ex_rd_addr(ex_rd_addr),
+    .idexout_ex_pc_addr0(ex_pc_addr0),
+    .idexout_ex_inst(ex_inst)
 );
 
 // 
@@ -170,17 +192,14 @@ IDEXREG idereg(
 // 
 // 
 
-wire [31:0] ex_imm_shelft_left1;
-SHEFT_LEFT1 ex_shelft_left1(
-    .in_data(ex_imm),
-    .out_data(ex_imm_shelft_left1)
-);
-
+// calculate next pc for branch and jump
 wire [31:0] ex_add_result;
-ADD ex_add(
-    .in_data_1(ex_rs1_data),
-    .in_data_2(ex_imm_shelft_left1),
-    .out_data(ex_add_result)
+EXADD ex_add(
+    .ex_pc_out(ex_pc_out),
+    .ex_imm(ex_imm),
+    .ex_rs1_data(ex_rs1_data),
+    .ex_inst(ex_inst),
+    .ex_add_result(ex_add_result)
 );
 
 wire [31:0] ex_mux_result;
@@ -209,10 +228,13 @@ ALU ex_alu(
 
 
 wire [2:0] mem_M;
-wire [3:0] mem_WB;
+wire [2:0] mem_WB;
 wire [31:0] mem_alu_result;
 wire [31:0] mem_rs2_data;
 wire [4:0] mem_rd_addr;
+wire [31:0] mem_imm;
+wire [31:0] mem_pc_addr0;
+wire [31:0] mem_inst;
 wire mem_zero;
 
 EXMEMREG exmemreg(
@@ -225,6 +247,9 @@ EXMEMREG exmemreg(
     .exmemin_ex_alu_result(ex_alu_result),
     .exmemin_ex_rs2_data(ex_rs2_data),
     .exmemin_ex_rd_addr(ex_rd_addr),
+    .exmemin_ex_imm(ex_imm),
+    .exmemin_ex_pc_addr0(ex_pc_addr0),
+    .exmemin_ex_inst(ex_inst),
 
     .exmemout_m(mem_M),
     .exmemout_wb(mem_WB),
@@ -232,7 +257,10 @@ EXMEMREG exmemreg(
     .exmemout_mem_alu_result(mem_alu_result),
     .exmemout_mem_rs2_data(mem_rs2_data),
     .exmemout_mem_rd_addr(mem_rd_addr),
-    .exmeout_mem_zero(mem_zero)
+    .exmemout_mem_imm(mem_imm),
+    .exmemout_mem_zero(mem_zero),
+    .exmemout_mem_pc_addr0(mem_pc_addr0),
+    .exmemout_mem_inst(mem_inst)
 );
 
 // 
@@ -241,43 +269,53 @@ EXMEMREG exmemreg(
 // 
 // 
 
-// b_type and beq or not(b_type and bne) 
-reg pc_src_reg;
-always @ (mem_M) begin 
+// b_type and beq or not (b_type and bne) 
+reg pc_src1_reg;
+always @ (*) begin 
     if (mem_M[2] == 1'b1) begin
         // branch instruction
         if (mem_M[1] == 1'b1) begin
             // beq
             if(mem_zero == 1'b1) begin
-                pc_src_reg <= 1'b1;
+                pc_src1_reg <= 1'b1;
             end
             else begin
-                pc_src_reg <= 1'b0;
+                pc_src1_reg <= 1'b0;
             end
         end else begin
             // bne
             if(mem_zero == 1'b0) begin
-                pc_src_reg <= 1'b1;
+                pc_src1_reg <= 1'b1;
             end
             else begin
-                pc_src_reg <= 1'b0;
+                pc_src1_reg <= 1'b0;
             end
         end
-    end else begin
-        pc_src_reg = 1'b0;
+    end 
+    else begin
+        pc_src1_reg = 1'b0;
     end
 end
 
-assign pc_src = pc_src_reg;
+PCSRC0GEN mem_pc_src0_gen(
+    .inst(mem_inst),
+    .pc_src0(pc_src[0])
+);
+
+assign pc_src[1] = pc_src1_reg;
 
 assign addr_out = mem_alu_result;
 assign data_out = mem_rs2_data;
 assign mem_write = mem_M[0];
 
-wire [3:0] wb_WB;
+wire [2:0] wb_WB;
 wire [31:0] wb_data_in;
 wire [31:0] wb_alu_result;
 // wire [4:0] wb_rd_addr; have declared in EX stage
+
+wire [31:0] wb_imm;
+wire [31:0] wb_pc_addr0;
+wire [31:0] wb_inst;
 
 MEMWBREG memwbreg(
     .clk(clk),
@@ -286,11 +324,17 @@ MEMWBREG memwbreg(
     .memwbin_mem_data_in(data_in),
     .memwbin_mem_alu_result(mem_alu_result),
     .memwbin_mem_rd_addr(mem_rd_addr),
+    .memwbin_mem_imm(mem_imm),
+    .memwbin_mem_pc_addr0(mem_pc_addr0),
+    .memwbin_mem_inst(mem_inst),
 
     .memwbout_wb_wb(wb_WB),
     .memwbout_wb_data_in(wb_data_in),
     .memwbout_wb_alu_result(wb_alu_result),
-    .memwbout_wb_rd_addr(wb_rd_addr)
+    .memwbout_wb_imm(wb_imm),
+    .memwbout_wb_rd_addr(wb_rd_addr),
+    .memwbout_wb_pc_addr0(wb_pc_addr0),
+    .memwbout_wb_inst(wb_inst)
 );
 
 // 
@@ -299,11 +343,13 @@ MEMWBREG memwbreg(
 // 
 // 
 
-MUX2T1_32 wb_mux(
-    .in_data_1(wb_alu_result),
-    .in_data_2(wb_data_in),
-    .sel(wb_WB[0]),
-    .out_data(wb_rd_data)
+MUX4T1_32 wb_mux(
+    .data_in_0(wb_alu_result),
+    .data_in_1(wb_imm),
+    .data_in_2(wb_pc_addr0),
+    .data_in_3(wb_data_in),
+    .sel(wb_WB[1:0]),
+    .data_out(wb_rd_data)
 );
 
 endmodule

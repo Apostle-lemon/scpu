@@ -6,7 +6,7 @@ module CONTROL(
   // Outputs
   output [4:0] id_ex,
   output [2:0] id_m,
-  output [3:0] id_wb
+  output [2:0] id_wb
   );
 
   reg reg_write_reg;
@@ -50,6 +50,7 @@ module CONTROL(
           end
         // bne, beq
         7'b1100011: begin
+          branch_reg = 1'b1;
           reg_write_reg = 1'b0;
           alu_src_b_reg = 1'b0;
           alu_op_reg = 4'b1000;
@@ -73,6 +74,13 @@ module CONTROL(
         7'b1101111: begin
           reg_write_reg = 1'b1;
           alu_src_b_reg = 1'b0;//arbitrary
+          alu_op_reg = 4'b0000;//arbitrary
+          mem_to_reg_reg = 2'b10; 
+          end
+        //jalr
+        7'b1100111: begin
+          reg_write_reg = 1'b1;
+          alu_src_b_reg = 1'b1;
           alu_op_reg = 4'b0000;//arbitrary
           mem_to_reg_reg = 2'b10; 
           end
