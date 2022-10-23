@@ -4,6 +4,7 @@ module IFIDREG(
     input [31:0] ifidin_pc_out,
     input [31:0] ifidin_inst,
     input [31:0] ifidin_pc_addr0,
+    input ifidin_ifid_write,
 
     output [31:0] ifidout_pc_out,
     output [31:0] ifidout_inst,
@@ -23,11 +24,14 @@ begin
         ifidout_inst_reg <= 32'h00000013;
         ifidout_id_pc_addr0_reg <= 32'h00000000;
     end
-    else
-    begin
+    else if(ifidin_ifid_write) begin
         ifidout_pc_out_reg <= ifidin_pc_out;
         ifidout_inst_reg <= ifidin_inst;
         ifidout_id_pc_addr0_reg <= ifidin_pc_addr0;
+    end else begin
+        ifidout_pc_out_reg <= ifidout_pc_out_reg;
+        ifidout_inst_reg <= ifidout_inst_reg;
+        ifidout_id_pc_addr0_reg <= ifidout_id_pc_addr0_reg;
     end
 end
 

@@ -1,10 +1,10 @@
 -- Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.
 -- --------------------------------------------------------------------------------
 -- Tool Version: Vivado v.2020.1 (win64) Build 2902540 Wed May 27 19:54:49 MDT 2020
--- Date        : Thu Sep 15 11:11:55 2022
+-- Date        : Sun Oct 23 00:14:14 2022
 -- Host        : DESKTOP-IT8J4BG running 64-bit major release  (build 9200)
 -- Command     : write_vhdl -force -mode synth_stub
---               c:/Users/ethereal/Desktop/university/3-00ZJUcourse/computerSystemI/lab5/ram/Ram_stub.vhdl
+--               c:/Users/ethereal/Desktop/university/3-00ZJUcourse/computerSystemII/lab2/scpu/ram/Ram_stub.vhdl
 -- Design      : Ram
 -- Purpose     : Stub declaration of top-level module interface
 -- Device      : xc7a100tcsg324-1

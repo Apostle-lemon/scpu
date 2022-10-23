@@ -8,6 +8,7 @@ module MEMWBREG (
     input [31:0] memwbin_mem_imm,
     input [31:0] memwbin_mem_pc_addr0,
     input [31:0] memwbin_mem_inst,
+    input [31:0] memwbin_mem_pc_out,
 
     output [2:0] memwbout_wb_wb,
     output [31:0] memwbout_wb_data_in,
@@ -15,7 +16,8 @@ module MEMWBREG (
     output [31:0] memwbout_wb_imm,
     output [4:0] memwbout_wb_rd_addr,
     output [31:0] memwbout_wb_pc_addr0,
-    output [31:0] memwbout_wb_inst
+    output [31:0] memwbout_wb_inst,
+    output [31:0] memwbout_wb_pc_out
 );
 
     reg [2:0] memwbout_wb_wb_reg;
@@ -25,6 +27,7 @@ module MEMWBREG (
     reg [4:0] memwbout_wb_rd_addr_reg;
     reg [31:0] memwbout_wb_pc_addr0_reg;
     reg [31:0] memwbout_wb_inst_reg;
+    reg [31:0] memwbout_wb_pc_out_reg;
 
     always @(posedge clk or posedge rst)
     begin
@@ -37,6 +40,7 @@ module MEMWBREG (
             memwbout_wb_rd_addr_reg <= 5'b0;
             memwbout_wb_pc_addr0_reg <= 32'b0;
             memwbout_wb_inst_reg <= 32'h00000013;
+            memwbout_wb_pc_out_reg <= 32'h00000000;
         end
         else
         begin
@@ -47,6 +51,7 @@ module MEMWBREG (
             memwbout_wb_rd_addr_reg <= memwbin_mem_rd_addr;
             memwbout_wb_pc_addr0_reg <= memwbin_mem_pc_addr0;
             memwbout_wb_inst_reg <= memwbin_mem_inst;
+            memwbout_wb_pc_out_reg <= memwbin_mem_pc_out;
         end
     end
 
@@ -57,5 +62,6 @@ module MEMWBREG (
     assign memwbout_wb_rd_addr = memwbout_wb_rd_addr_reg;
     assign memwbout_wb_pc_addr0 = memwbout_wb_pc_addr0_reg;
     assign memwbout_wb_inst = memwbout_wb_inst_reg;
+    assign memwbout_wb_pc_out = memwbout_wb_pc_out_reg;
 
 endmodule

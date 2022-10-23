@@ -11,6 +11,7 @@ module EXMEMREG(
     input [31:0] exmemin_ex_imm,
     input [31:0] exmemin_ex_pc_addr0,
     input [31:0] exmemin_ex_inst,
+    input [31:0] exmemin_ex_pc_out,
 
     output [2:0] exmemout_m,
     output [2:0] exmemout_wb,
@@ -21,7 +22,8 @@ module EXMEMREG(
     output [31:0] exmemout_mem_imm,
     output [31:0] exmemout_mem_pc_addr0,
     output [31:0] exmemout_mem_inst,
-    output exmemout_mem_zero
+    output exmemout_mem_zero,
+    output [31:0] exmemout_mem_pc_out
 );
 
     reg [2:0] exmemout_m_reg;
@@ -34,6 +36,7 @@ module EXMEMREG(
     reg [31:0] exmeout_mem_pc_addr0_reg;
     reg [31:0] exmemout_mem_inst_reg;
     reg exmeout_mem_zero_reg;
+    reg [31:0] exmemout_mem_pc_out_reg;
 
     always @(posedge clk or posedge rst)
     begin
@@ -49,6 +52,7 @@ module EXMEMREG(
             exmeout_mem_pc_addr0_reg <= 32'b00000000000000000000000000000000;
             exmemout_mem_inst_reg <= 32'h00000013;
             exmeout_mem_zero_reg <= 1'b0;
+            exmemout_mem_pc_out_reg <= 32'b00000000000000000000000000000000;
         end
         else
         begin
@@ -62,6 +66,7 @@ module EXMEMREG(
             exmeout_mem_pc_addr0_reg <= exmemin_ex_pc_addr0;
             exmemout_mem_inst_reg <= exmemin_ex_inst;
             exmeout_mem_zero_reg <= exmemin_ex_zero;
+            exmemout_mem_pc_out_reg <= exmemin_ex_pc_out;
         end
     end
 
@@ -75,5 +80,6 @@ module EXMEMREG(
     assign exmemout_mem_pc_addr0 = exmeout_mem_pc_addr0_reg;
     assign exmemout_mem_inst = exmemout_mem_inst_reg;
     assign exmemout_mem_zero = exmeout_mem_zero_reg;
+    assign exmemout_mem_pc_out = exmemout_mem_pc_out_reg;
 
 endmodule

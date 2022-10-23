@@ -28,6 +28,13 @@ module Core(
     begin
         pc_out_div <= pc_out/4;
     end
+
+    reg[31:0] addr_out_div=0;
+    always @(addr_out)
+    begin
+        addr_out_div <= addr_out/4;
+    end
+
     
     assign rst = ~aresetn;
     SCPU cpu(
@@ -62,7 +69,7 @@ module Core(
     Ram ram_unit (
         .clka(mem_clk), // 时钟输入
         .wea(mem_write), // 写使能输�??
-        .addra(addr_out), // 地址输入
+        .addra(addr_out_div), // 地址输入
         .dina(core_data_out), // 数据输入
         .douta(core_data_in) // 数据输出
     );

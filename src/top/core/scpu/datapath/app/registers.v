@@ -20,7 +20,7 @@ module REGS(
     assign debug_reg_data = registers[debug_reg_addr];
 
 
-    always @(posedge clk or posedge rst) begin
+    always @(negedge clk or posedge rst) begin
         if(rst) begin
             for(i = 1; i < 32; i = i + 1) begin
                 registers[i] <= 0;

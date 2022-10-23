@@ -2,6 +2,7 @@ module PC(
     input clk,
     input rst,
     input [31:0] addr,
+    input pc_write,
     output [31:0] new_addr
 );
 
@@ -11,9 +12,15 @@ module PC(
         if (rst) begin
             addr_reg <= -4;
         end else begin
-            addr_reg <= addr;
+            if (pc_write) begin
+                addr_reg <= addr;
+            end 
+            else begin
+                addr_reg <= addr_reg;
+            end
         end
     end
+    
     assign new_addr = addr_reg;
 
 endmodule

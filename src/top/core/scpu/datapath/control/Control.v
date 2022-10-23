@@ -66,7 +66,7 @@ module CONTROL(
         // lui
         7'b0110111: begin
           reg_write_reg = 1'b1;
-          alu_src_b_reg = 1'b0;//arbitrary
+          alu_src_b_reg = 1'b1;//from imm
           alu_op_reg = 4'b0000;//arbitrary
           mem_to_reg_reg = 2'b01; 
           end

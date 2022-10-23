@@ -12,6 +12,8 @@ module IDEXREG (
     input [4:0] idexin_id_rd_addr,
     input [31:0] idexin_id_pc_addr0,
     input [31:0] idexin_id_inst,
+    input idexin_ex_is_branch_jump,
+    input idexin_mem_is_branch_jump,
 
     output [4:0] idexout_ex,
     output [2:0] idexout_m,
@@ -40,8 +42,7 @@ module IDEXREG (
     
     always @(posedge clk or posedge rst)
     begin
-        if(rst)
-        begin
+        if(rst) begin
             idexout_ex_reg <= 5'b0;
             idexout_m_reg <= 3'b0;
             idexout_wb_reg <= 4'b0;
@@ -53,9 +54,19 @@ module IDEXREG (
             idexout_ex_rd_addr_reg <= 5'b0;
             idexout_ex_pc_addr0_reg <= 32'b0;
             idexout_ex_inst_reg <= 32'h00000013;
-        end
-        else
-        begin
+        end else if (idexin_ex_is_branch_jump || idexin_mem_is_branch_jump) begin
+            idexout_ex_reg <= 5'b0;
+            idexout_m_reg <= 3'b0;
+            idexout_wb_reg <= 4'b0;
+            idexout_ex_pc_out_reg <= 32'b0;
+            idexout_ex_rs1_data_reg <= 32'b0;
+            idexout_ex_rs2_data_reg <= 32'b0;
+            idexout_ex_imm_reg <= 32'b0;
+            idexout_ex_alu_op_reg <= 4'b0;
+            idexout_ex_rd_addr_reg <= 5'b0;
+            idexout_ex_pc_addr0_reg <= 32'b0;
+            idexout_ex_inst_reg <= 32'h00000013;
+        end else begin
             idexout_ex_reg <= idexin_ex;
             idexout_m_reg <= idexin_m;
             idexout_wb_reg <= idexin_wb;
