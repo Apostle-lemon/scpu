@@ -63,6 +63,7 @@ PC pc(
     .clk(clk),
     .rst(rst),
     .pc_write(pc_write),
+    .cur_inst(if_inst_modified),
     .addr(pc_new2),
     .new_addr(pc_out)
 );
