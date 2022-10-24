@@ -18,7 +18,7 @@ module FORWARDING_UNIT (
     reg [1:0] forward_rs1_reg;
     reg [1:0] forward_rs2_reg;
 
-    // ex hazard
+    // rs1
     always @(*) begin
         if (forwardin_mem_WB[2]==1'b1 && forwardin_mem_rd_addr != 0 && forwardin_mem_rd_addr == forwardin_ex_rs1_addr ) begin
             forward_rs1_reg = 2'b10;

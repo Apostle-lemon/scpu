@@ -153,6 +153,7 @@ RAW_HAZARD_UNIT raw_hazard_unit(
     .rawhazardin_id_rs2_addr(id_rs2_addr),
     .rawhazardin_ex_rd_addr(ex_rd_addr),
     .rawhazardin_ex_inst(ex_inst),
+
     .rawhazardout_pc_write(pc_write),
     .rawhazardout_ifid_write(ifid_write),
     .rawhazardout_idex_zero(idex_zero)
