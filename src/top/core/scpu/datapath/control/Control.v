@@ -90,7 +90,13 @@ module CONTROL(
           alu_op_reg = {1'b0,funct3};
           mem_to_reg_reg = 2'b00;
           end
-        
+        // auipc
+        7'b0010111: begin
+          reg_write_reg = 1'b1;
+          alu_src_b_reg = 1'b1;//from imm
+          alu_op_reg = 4'b0000;//arbitrary
+          mem_to_reg_reg = 2'b00;// from alu_result
+          end
         // other instructions
         default: alu_op_reg = 0;
     endcase

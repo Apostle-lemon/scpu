@@ -21,7 +21,7 @@ module ALUOP (
         7'b0000011:begin
             alu_op_reg = 4'b0000;
         end
-        //bne,beq
+        //bne,beq and other b-type
         7'b1100011:begin
             alu_op_reg = 4'b1000;
         end
@@ -33,7 +33,6 @@ module ALUOP (
         7'b1101111:begin
             alu_op_reg = 4'b0000;
         end
-        //TODO: check 
         //R-type
         7'b0110011:begin
             case (funct3)

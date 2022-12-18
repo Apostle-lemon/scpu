@@ -7,7 +7,7 @@ module myRom(
     reg [31:0] rom [0:2047];
 
 
-    localparam FILE_PATH = "kernel.sim";
+    localparam FILE_PATH = "C:/Users/ethereal/Desktop/university/3-00ZJUcourse/computerSystemII/lab7/scpu/rom/kernel.sim";
     initial begin
         $readmemh(FILE_PATH, rom);
     end

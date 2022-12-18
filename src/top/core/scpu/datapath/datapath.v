@@ -59,6 +59,7 @@ MUX2T1_32 pc_mux2(
 wire pc_write;
 
 wire ex_is_branch_jump;
+wire [31:0] if_inst_modified;
 PC pc(
     .clk(clk),
     .rst(rst),
@@ -68,7 +69,6 @@ PC pc(
     .new_addr(pc_out)
 );
 
-wire [31:0] if_inst_modified;
 MUX2T1_32 if_inst_mux(
     .in_data_1(inst_in),
     .in_data_2(32'h00000013),
@@ -247,6 +247,70 @@ IDEXREG idereg(
 //  \___  >__/\_ \
 //      \/      \/
 
+//   ____ ___  ___           ____   _____\______   \
+// _/ __ \\  \/  /  ______ _/ ___\ /  ___/|       _/
+// \  ___/ >    <  /_____/ \  \___ \___ \ |    |   \
+//  \___  >__/\_ \          \___  >____  >|____|_  /
+//      \/      \/              \/     \/        \/ 
+
+wire [4:0] mem_rd_addr;
+wire [2:0] mem_WB;
+wire [2:0] wb_WB;
+wire[1:0] csr_forwarding_signal;
+
+CSR_FORWARDING_UNIT csr_forwarding_unit(
+    .forward_in_source(ex_inst[19:15]),
+    .forwardin_mem_rd_addr(mem_rd_addr),
+    .forwardin_wb_rd_addr(wb_rd_addr),
+    .forwardin_mem_WB(mem_WB),
+    .forwardin_wb_WB(wb_WB),
+    .forwardout_rs1(csr_forwarding_signal)
+);
+
+wire [31:0] csr_gpr_rs1;
+
+CSR_SOURCE_MUX csr_source_mux(
+    .data_in_0(ex_rs1_data),
+    .data_in_1(wb_rd_data),
+    .data_in_2(mem_alu_result),
+    .data_in_3(32'b0),
+    .sel(csr_forwarding_signal),
+    .data_out(csr_gpr_rs1)
+);
+
+wire [31:0] csr_output_data;
+wire [31:0] csr_ex_result;
+
+CSR_EX_UNIT csr_ex_unit(
+    .csrexin_inst(ex_inst),
+    .csrexin_csr_gpr_rs1(csr_gpr_rs1),
+    .csrexin_csr_data(csr_output_data),
+    .csrexout_csr_ex_result(csr_ex_result)
+);
+
+wire csr_write;
+
+CSR_CONTROL csr_control(
+    .csrcontrolin_inst(ex_inst),
+    .csrcontrolout_csr_write(csr_write)
+);
+
+CSR_UNIT csr_unit(
+    .csrin_write(csr_write),
+    .clk(clk),
+    .rst(rst),
+    .csrin_write_data(csr_ex_result),
+    .csrin_inst(ex_inst),
+    .csrout_csr_data(csr_output_data)
+);
+
+//               __________                       .___
+//   ____   _____\______   \     ____   ____    __| _/
+// _/ ___\ /  ___/|       _/   _/ __ \ /    \  / __ | 
+// \  \___ \___ \ |    |   \   \  ___/|   |  \/ /_/ | 
+//  \___  >____  >|____|_  /____\___  >___|  /\____ | 
+//      \/     \/        \/_____/   \/     \/      \/ 
+
 // calculate next pc for branch and jump
 wire [31:0] ex_add_result;
 wire [31:0] ex_mux_rs1_data;
@@ -265,9 +329,6 @@ BRANCH_JUMP_DETECT ex_branch_jump_detect(
 
 wire [1:0] forward_rs1;
 wire [1:0] forward_rs2;
-wire [4:0] mem_rd_addr;
-wire [2:0] mem_WB;
-wire [2:0] wb_WB;
 
 FORWARDING_UNIT forwarding_unit(
     .forwardin_ex_rs1_addr(ex_inst[19:15]),
@@ -281,6 +342,7 @@ FORWARDING_UNIT forwarding_unit(
     .forwardout_rs2(forward_rs2)
 );
 
+wire [31:0] mem_alu_result;
 MUX4T1_32 ex_mux_rs1(
     .data_in_0(ex_rs1_data),
     .data_in_1(wb_rd_data),
@@ -291,7 +353,6 @@ MUX4T1_32 ex_mux_rs1(
 );
 
 wire [31:0] ex_mux_rs2_data;
-wire [31:0] mem_alu_result;
 MUX4T1_32 ex_mux_rs2(
     .data_in_0(ex_rs2_data),
     .data_in_1(wb_rd_data),
@@ -322,13 +383,15 @@ ALU ex_alu(
     .b(ex_alu2_mux_result),
     .alu_op(ex_alu_op_result),
     .inst(ex_inst),
+    .pc(ex_pc_out),
     .res(ex_alu_result),
     .zero(ex_zero)
 );
 
 
 wire [2:0] mem_M;
-wire [31:0] mem_rs2_data;
+wire [31:0] mem_rs1_data;
+wire [31:0] mem_rs2_data; // 需要 rs1_data 和 rs2_data 进行无符号比较，生成 pr_src[1]
 wire [31:0] mem_imm;
 wire [31:0] mem_inst;
 wire [31:0] mem_pc_out;
@@ -342,17 +405,20 @@ EXMEMREG exmemreg(
     .exmemin_ex_add_result(ex_add_result),
     .exmemin_ex_zero(ex_zero),
     .exmemin_ex_alu_result(ex_alu_result),
+    .exmemin_ex_rs1_data(ex_mux_rs1_data),
     .exmemin_ex_rs2_data(ex_mux_rs2_data),
     .exmemin_ex_rd_addr(ex_rd_addr),
     .exmemin_ex_imm(ex_imm),
     .exmemin_ex_pc_addr0(ex_pc_addr0),
     .exmemin_ex_inst(ex_inst),
     .exmemin_ex_pc_out(ex_pc_out),
+    .exmemin_csr_output_data(csr_output_data),
 
     .exmemout_m(mem_M),
     .exmemout_wb(mem_WB),
     .exmemout_pc_addr1(pc_addr1),
     .exmemout_mem_alu_result(mem_alu_result),
+    .exmemout_mem_rs1_data(mem_rs1_data),
     .exmemout_mem_rs2_data(mem_rs2_data),
     .exmemout_mem_rd_addr(mem_rd_addr),
     .exmemout_mem_imm(mem_imm),
@@ -369,37 +435,18 @@ EXMEMREG exmemreg(
 //       \/     \/      \/
 
 // b_type and beq or not (b_type and bne) 
-reg pc_src1_reg;
-always @ (*) begin 
-    if (mem_M[2] == 1'b1) begin
-        // branch instruction
-        if (mem_M[1] == 1'b1) begin
-            // beq
-            if(mem_zero == 1'b1) begin
-                pc_src1_reg <= 1'b1;
-            end
-            else begin
-                pc_src1_reg <= 1'b0;
-            end
-        end else begin
-            // bne
-            if(mem_zero == 1'b0) begin
-                pc_src1_reg <= 1'b1;
-            end
-            else begin
-                pc_src1_reg <= 1'b0;
-            end
-        end
-    end 
-    else begin
-        pc_src1_reg <= 1'b0;
-    end
-end
-
 
 BRANCH_JUMP_DETECT mem_branch_jump_detect(
     .branchjumpdetectin_inst(mem_inst),
     .branchjumpdetectout_is_branch_jump(mem_is_branch_jump)
+);
+
+PCSRC1GEN mem_pc_src1_gen(
+    .pcsrc1in_inst(mem_inst),
+    .pcsrc1in_mem_alu_result(mem_alu_result),
+    .pcsrc1in_mem_rs1_data(mem_rs1_data),
+    .pcsrc1in_mem_rs2_data(mem_rs2_data),
+    .pc_src1(pc_src[1])
 );
 
 PCSRC0GEN mem_pc_src0_gen(
@@ -407,7 +454,6 @@ PCSRC0GEN mem_pc_src0_gen(
     .pc_src0(pc_src[0])
 );
 
-assign pc_src[1] = pc_src1_reg;
 assign addr_out = mem_alu_result;
 assign data_out = mem_rs2_data;
 assign mem_write = mem_M[0];

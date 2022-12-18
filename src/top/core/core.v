@@ -60,18 +60,18 @@ module Core(
     assign cpu_clk = debug_mode ? clk_div[0] : step;
     
     // instruction memory
-    Rom rom_unit (
-        .a(pc_out_div),   // 地址输入
-        .spo(inst)          // 命令输出
+    myRom rom_unit(
+        .address(pc_out_div), // 地址输入
+        .out(inst) // 命令输出
     );
 
     // data memory
-    Ram ram_unit (
-        .clka(mem_clk), // 时钟输入
-        .wea(mem_write), // 写使能输�??
-        .addra(addr_out_div), // 地址输入
-        .dina(core_data_out), // 数据输入
-        .douta(core_data_in) // 数据输出
+    myRam ram_unit (
+        .clk(mem_clk), // 时钟输入
+        .we(mem_write), // 写使能输入
+        .write_data(addr_out_div), // 地址输入
+        .address(core_data_out), // 数据输入
+        .read_data(core_data_in) // 数据输出
     );
 
     assign chip_debug_out0 = pc_out;
