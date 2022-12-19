@@ -15,7 +15,7 @@ typedef unsigned int uint;
 
 // task
 #define TASK_NUM        3
-#define TASK_SIZE       0x100
+#define TASK_SIZE       0x100 // 
 #define COUNTER_INIT    0x1000
 
 struct tss_struct {
@@ -39,8 +39,8 @@ typedef struct tss_struct tss;
 
 struct task_struct {
     int id;         // task id
-    int counter;    // pseudo counter
-    tss thread;     // task's tss
+    int counter;    // pseudo counter addr+4
+    tss thread;     // task's tss addr+8
 };
 
 

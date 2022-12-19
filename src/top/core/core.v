@@ -69,8 +69,8 @@ module Core(
     myRam ram_unit (
         .clk(mem_clk), // 时钟输入
         .we(mem_write), // 写使能输入
-        .write_data(addr_out_div), // 地址输入
-        .address(core_data_out), // 数据输入
+        .write_data(core_data_out), // 数据输入
+        .address(addr_out[10:0]), // 地址输入，这次不用/4
         .read_data(core_data_in) // 数据输出
     );
 

@@ -33,18 +33,18 @@ module CONTROL(
           alu_op_reg = {1'b0, funct3};
           mem_to_reg_reg = 2'b00; 
           end
-        //lw
+        //sw
         7'b0100011: begin 
-          reg_write_reg = 1'b0; 
-          alu_src_b_reg = 1'b1;
-          alu_op_reg = 4'b0000;
+          reg_write_reg = 1'b0; // not write register 
+          alu_src_b_reg = 1'b1; // from imm
+          alu_op_reg = 4'b0000; // add
           mem_to_reg_reg = 2'b01; //arbitrary 
           mem_write_reg = 1'b1;
           end
-        //sw
+        //lw
         7'b0000011: begin 
           reg_write_reg = 1'b1; 
-          alu_src_b_reg = 1'b1;
+          alu_src_b_reg = 1'b1; // from imm
           alu_op_reg = 4'b0000;
           mem_to_reg_reg = 2'b11; 
           end
@@ -97,7 +97,11 @@ module CONTROL(
           alu_op_reg = 4'b0000;//arbitrary
           mem_to_reg_reg = 2'b00;// from alu_result
           end
-        // other instructions
+        // csrr, csrs, csrc 
+        7'b1110011: begin
+          reg_write_reg = 1'b1; // write_enable
+          mem_to_reg_reg = 2'b00; // from alu_result
+        end
         default: alu_op_reg = 0;
     endcase
 end

@@ -64,7 +64,7 @@ module EXMEMREG(
             exmemout_m_reg <= exmemin_m;
             case(exmemin_ex_inst[6:0]) 
                 7'b1110011 : // 如果是 SYSTEM 指令，就设置 WB 使能
-                    case (exmemin_ex_inst[11:7]) 
+                    case (exmemin_ex_inst[11:7])
                         5'b00000 : exmemout_wb_reg <= 3'b000; // 最高位为 0，表示不写回
                         default : exmemout_wb_reg <= 3'b100; // 最高位为 1，表示写回, 00 代表选择 alu_result
                     endcase

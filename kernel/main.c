@@ -30,10 +30,10 @@ void traps() {
 #else
     schedule();
     for (int i = 1; i < TASK_NUM; i++) {
-                if (current == tasks[i]) {
-                    asm("addi gp, %0, 0x100" :: "r"(i));
-                }
-            }
+        if (current == tasks[i]) {
+            asm("addi gp, %0, 0x100" :: "r"(i));
+        }
+    }
 #endif
 }
 
@@ -108,11 +108,8 @@ void schedule(void) {
     switch_to(next);
 }
 
-
-
-
 int main() {
-    init_tasks();
+    init_tasks(); // 初始化 task 的 id, counter, ra, sp 一类
     proc();
     return 0;
 }

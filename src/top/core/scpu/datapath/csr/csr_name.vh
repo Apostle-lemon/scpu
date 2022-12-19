@@ -5,5 +5,6 @@
 // mtvec, mepc, mstatus
 parameter mtvec = 12'h305,
           mepc  = 12'h341,
-          mstatus = 12'h300;
+          mstatus = 12'h300,
+          mcause = 12'h342;
 //`endif

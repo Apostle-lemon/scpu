@@ -60,20 +60,31 @@ wire pc_write;
 
 wire ex_is_branch_jump;
 wire [31:0] if_inst_modified;
+
+//TODO: 需要注意的是，当我们取到 ecall 指令时，pc 下一个时钟周期即会变成 stvec
+// 但是 mtvec 可能在前两条指令时发生写入，但我们这里不考虑这个情况
+// 如果发生了这种情况，记得修改对应的内容
+wire [31:0] datapath_mtvec_data;
+wire [31:0] datapath_mepc_data;
+wire [31:0] datapath_mstatus_data;
+wire mem_is_mret; // 如果 mem_is_mret，那么 pc 就可以更新为 mepc 了
 PC pc(
     .clk(clk),
     .rst(rst),
-    .pc_write(pc_write),
-    .cur_inst(if_inst_modified),
     .addr(pc_new2),
+    .cur_inst(if_inst_modified),
+    .mtvec_data(datapath_mtvec_data),
+    .mepc_data(datapath_mepc_data),
+    .pc_write(pc_write),
+    .set_pc_to_mepc(mem_is_mret),
     .new_addr(pc_out)
 );
 
-MUX2T1_32 if_inst_mux(
-    .in_data_1(inst_in),
-    .in_data_2(32'h00000013),
-    .sel(mem_is_branch_jump),
-    .out_data(if_inst_modified)
+IFINSTMUX if_inst_mux(
+    .ifinstin_id_inst_orig(inst_in),
+    .ifinstmuxin_mem_is_mret(mem_is_mret),
+    .ifinstin_mem_is_branch_jump(mem_is_branch_jump),
+    .ifinstout_inst_modified(if_inst_modified)
 );
 
 wire[31:0] id_inst_orig;
@@ -114,6 +125,7 @@ ID_INST_MUX id_inst_mux(
     .idpcmuxin_id_inst_orig(id_inst_orig),
     .idpcmuxin_ex_is_branch_jump(ex_is_branch_jump),
     .idpcmuxin_mem_is_branch_jump(mem_is_branch_jump),
+    .idpcmuxin_ex_is_mret(ex_is_mret),
     .idpcmuxout_id_inst(id_inst)
 );
 
@@ -269,10 +281,12 @@ CSR_FORWARDING_UNIT csr_forwarding_unit(
 
 wire [31:0] csr_gpr_rs1;
 
+wire [31:0] mem_alu_result;
+wire [31:0] mem_rd_data;
 CSR_SOURCE_MUX csr_source_mux(
     .data_in_0(ex_rs1_data),
     .data_in_1(wb_rd_data),
-    .data_in_2(mem_alu_result),
+    .data_in_2(mem_rd_data),
     .data_in_3(32'b0),
     .sel(csr_forwarding_signal),
     .data_out(csr_gpr_rs1)
@@ -292,16 +306,25 @@ wire csr_write;
 
 CSR_CONTROL csr_control(
     .csrcontrolin_inst(ex_inst),
-    .csrcontrolout_csr_write(csr_write)
+    .csrcontrolout_csr_write(csr_write),
+    .csrcontrolout_mem_is_mret(mem_is_mret)
 );
 
+// 注意：只有使用 id_inst 才能满足 poseedg clock 的要求
+wire [31:0] datapath_mcause_data;
 CSR_UNIT csr_unit(
     .csrin_write(csr_write),
     .clk(clk),
     .rst(rst),
     .csrin_write_data(csr_ex_result),
-    .csrin_inst(ex_inst),
-    .csrout_csr_data(csr_output_data)
+    .csrin_id_inst(id_inst),
+    .csrin_ex_inst(ex_inst),
+    .csrin_pc_out(ex_pc_out),
+    .csrout_csr_data(csr_output_data),
+    .mtvec_data(datapath_mtvec_data),
+    .mepc_data(datapath_mepc_data),
+    .mstatus_data(datapath_mstatus_data),
+    .mcause_data(datapath_mcause_data)
 );
 
 //               __________                       .___
@@ -342,11 +365,11 @@ FORWARDING_UNIT forwarding_unit(
     .forwardout_rs2(forward_rs2)
 );
 
-wire [31:0] mem_alu_result;
+
 MUX4T1_32 ex_mux_rs1(
     .data_in_0(ex_rs1_data),
     .data_in_1(wb_rd_data),
-    .data_in_2(mem_alu_result),
+    .data_in_2(mem_rd_data),
     .data_in_3(32'b0),
     .sel(forward_rs1),
     .data_out(ex_mux_rs1_data)
@@ -356,7 +379,7 @@ wire [31:0] ex_mux_rs2_data;
 MUX4T1_32 ex_mux_rs2(
     .data_in_0(ex_rs2_data),
     .data_in_1(wb_rd_data),
-    .data_in_2(mem_alu_result),
+    .data_in_2(mem_rd_data),
     .data_in_3(32'b0),
     .sel(forward_rs2),
     .data_out(ex_mux_rs2_data)
@@ -457,6 +480,15 @@ PCSRC0GEN mem_pc_src0_gen(
 assign addr_out = mem_alu_result;
 assign data_out = mem_rs2_data;
 assign mem_write = mem_M[0];
+
+MUX4T1_32 mem_mux(
+    .data_in_0(mem_alu_result),
+    .data_in_1(mem_imm),
+    .data_in_2(mem_pc_addr0),
+    .data_in_3(data_in),
+    .sel(mem_WB[1:0]),
+    .data_out(mem_rd_data)
+);
 
 wire [31:0] wb_data_in;
 wire [31:0] wb_alu_result;
